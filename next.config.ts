@@ -1,11 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   typescript: {
-    // 빌드 시 타입 오류가 있어도 무시하고 배포함
+    // 이 줄이 핵심입니다! 타입 에러가 있어도 빌드를 진행합니다.
     ignoreBuildErrors: true,
   },
   eslint: {
-    // 빌드 시 코드 규칙 오류가 있어도 무시하고 배포함
+    // 리액트 규칙 에러도 함께 무시합니다.
     ignoreDuringBuilds: true,
   },
 };
