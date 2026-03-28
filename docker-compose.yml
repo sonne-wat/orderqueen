@@ -1,0 +1,16 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: orderqueen-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: orderqueen
+    ports:
+      - "5432:5432"
+    volumes:
+      - orderqueen_pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  orderqueen_pgdata:

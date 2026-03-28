@@ -1,0 +1,16 @@
+{
+  "features": {
+    "prisma": {
+      "phase": "completed",
+      "matchRate": 97,
+      "iterationCount": 7,
+      "startedAt": "2026-03-15T00:00:00Z",
+      "completedAt": "2026-03-21T00:00:00Z"
+    },
+    "batch-shipment-request": {
+      "phase": "check",
+      "matchRate": 100,
+      "startedAt": "2026-03-21T00:00:00Z"
+    }
+  }
+}

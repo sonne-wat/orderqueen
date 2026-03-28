@@ -1,0 +1,261 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id              String     @id @default(cuid())
+  email           String     @unique
+  password        String
+  name            String
+  company         String?
+  role            Role       @default(DISTRIBUTOR)
+  status          UserStatus @default(PENDING)
+  phone           String?
+  address         String?
+  shippingAddress    String?
+  notificationEmails String[]
+  allowedCategories  ProductCategory[]
+  creditLimit        Decimal?   @db.Decimal(12, 2)
+  adminNotes      String?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  orders          Order[]
+  shipmentRequests ShipmentRequest[]
+
+  @@map("users")
+}
+
+model Product {
+  id                String           @id @default(cuid())
+  sku               String           @unique
+  name              String
+  description       String?
+  category          ProductCategory?
+  unitPrice         Decimal          @db.Decimal(10, 2)
+  currency          String           @default("USD")
+  stockQuantity     Int              @default(0)
+  stockUpdatedAt    DateTime?
+  lowStockThreshold Int              @default(10)
+  unit              String           @default("EA")
+  isActive          Boolean          @default(true)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  orderItems        OrderItem[]
+
+  @@map("products")
+}
+
+model Order {
+  id                String        @id @default(cuid())
+  orderNumber       String        @unique
+  distributorId     String
+  distributor       User          @relation(fields: [distributorId], references: [id])
+  status            OrderStatus   @default(DRAFT)
+  requestedDelivery DateTime?
+  shippingMode      ShippingMode?
+  packageType       PackageType?
+  incoterms         Incoterms?
+  notes             String?
+  confirmedAt       DateTime?
+  invoiceNumber         String?
+  acknowledgementNumber String?
+  paymentSkipped        Boolean       @default(false)
+  freightForwarder      FreightForwarder?
+  cancelReason          String?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  items             OrderItem[]
+  shipment          Shipment?
+  documents         Document[]
+  shipmentRequestOrders ShipmentRequestOrder[]
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id           String        @id @default(cuid())
+  orderId      String
+  order        Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId    String
+  product      Product       @relation(fields: [productId], references: [id])
+  requestedQty Int
+  confirmedQty Int?
+  unitPrice    Decimal       @db.Decimal(10, 2)
+  decision     ItemDecision?
+  rejectReason String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@map("order_items")
+}
+
+model Shipment {
+  id              String         @id @default(cuid())
+  orderId         String         @unique
+  order           Order          @relation(fields: [orderId], references: [id])
+  status          ShipmentStatus @default(PREPARING)
+  cbm             Decimal?       @db.Decimal(10, 3)
+  weightKg        Decimal?       @db.Decimal(8, 2)
+  scheduledDate   DateTime?
+  carrier         String?
+  trackingNumber  String?
+  notes           String?
+  palletCount     Int?
+  cartonCount     Int?
+  batchShipmentId String?
+  batchShipment   BatchShipment? @relation(fields: [batchShipmentId], references: [id])
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@map("shipments")
+}
+
+model ShipmentRequest {
+  id              String                 @id @default(cuid())
+  distributorId   String
+  distributor     User                   @relation(fields: [distributorId], references: [id])
+  status          ShipmentRequestStatus  @default(PENDING)
+  type            ShipmentRequestType    @default(BUNDLE)
+  requestedAt     DateTime               @default(now())
+  reviewedAt      DateTime?
+  rejectionNote   String?
+  targetBatchId   String?                // if set: add-to-batch (BUNDLE) or batch to unbundle from (UNBUNDLE)
+  orders          ShipmentRequestOrder[]
+  batchShipment   BatchShipment?
+
+  @@map("shipment_requests")
+}
+
+model ShipmentRequestOrder {
+  id                String          @id @default(cuid())
+  shipmentRequestId String
+  shipmentRequest   ShipmentRequest @relation(fields: [shipmentRequestId], references: [id], onDelete: Cascade)
+  orderId           String
+  order             Order           @relation(fields: [orderId], references: [id])
+
+  @@map("shipment_request_orders")
+}
+
+model BatchShipment {
+  id                String          @id @default(cuid())
+  batchNumber       String          @unique
+  shipmentRequestId String          @unique
+  shipmentRequest   ShipmentRequest @relation(fields: [shipmentRequestId], references: [id])
+  status            ShipmentStatus  @default(PREPARING)
+  cbm               Decimal?        @db.Decimal(10, 3)
+  weightKg          Decimal?        @db.Decimal(8, 2)
+  scheduledDate     DateTime?
+  carrier           String?
+  trackingNumber    String?
+  notes             String?
+  palletCount       Int?
+  cartonCount       Int?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  shipments         Shipment[]
+
+  @@map("batch_shipments")
+}
+
+model Document {
+  id        String       @id @default(cuid())
+  orderId   String
+  order     Order        @relation(fields: [orderId], references: [id])
+  type      DocumentType
+  fileUrl   String
+  createdAt DateTime     @default(now())
+
+  @@map("documents")
+}
+
+enum Role {
+  DISTRIBUTOR
+  ADMIN
+}
+
+enum UserStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+}
+
+enum OrderStatus {
+  DRAFT
+  SUBMITTED
+  CONFIRMED
+  PAYMENT_PENDING
+  PAYMENT_CONFIRMED
+  READY_TO_SHIP
+  SHIPMENT_BOOKED
+  SHIPPED
+  CANCELLED
+}
+
+enum ShippingMode {
+  AIR
+  OCEAN
+  HANDCARRY
+}
+
+enum PackageType {
+  PALLET
+  CARTON
+  TO_BE_DECIDED
+}
+
+enum Incoterms {
+  EXW
+  FCA
+  FOB
+  CFR
+  CIF
+  DAP
+  DDP
+}
+
+enum ItemDecision {
+  ACCEPTED
+  REJECTED
+}
+
+enum ShipmentStatus {
+  PREPARING
+  READY
+  BOOKED
+  SHIPPED
+}
+
+enum ShipmentRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ShipmentRequestType {
+  BUNDLE
+  UNBUNDLE
+}
+
+enum DocumentType {
+  CONFIRMATION_SHEET
+  INVOICE
+}
+
+enum FreightForwarder {
+  MY_FREIGHT_FORWARDER
+  EXPORTER_DESIGNATED
+  COURIER
+  NOT_DECIDED
+}
+
+enum ProductCategory {
+  BOWLING_BALL
+  BOWLING_BAG
+  BOWLING_SHOES
+  APPAREL
+  BOWLING_ACCESSORY
+}
