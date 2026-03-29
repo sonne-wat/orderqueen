@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
+import * as XLSX from 'xlsx'
 
 interface Product {
   id: string
@@ -9,6 +10,7 @@ interface Product {
   name: string
   category: string | null
   unitPrice: number
+  currency: string
   stockQuantity: number
   stockUpdatedAt: string | null
   unit: string
@@ -92,14 +94,89 @@ function StockCell({
   )
 }
 
+function PriceCell({
+  product,
+  isEditing,
+  editValue,
+  isSaving,
+  onStartEdit,
+  onChangeValue,
+  onRequestSave,
+  onCancel,
+}: {
+  product: Product
+  isEditing: boolean
+  editValue: string
+  isSaving: boolean
+  onStartEdit: () => void
+  onChangeValue: (v: string) => void
+  onRequestSave: () => void
+  onCancel: () => void
+}) {
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (isEditing) inputRef.current?.focus()
+  }, [isEditing])
+
+  if (isEditing) {
+    return (
+      <div className="inline-flex items-center gap-1 justify-end">
+        <span className="text-gray-400 text-sm">$</span>
+        <input
+          ref={inputRef}
+          type="number"
+          min={0}
+          step="0.01"
+          value={editValue}
+          onChange={(e) => onChangeValue(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') onRequestSave()
+            if (e.key === 'Escape') onCancel()
+          }}
+          onBlur={onRequestSave}
+          className="w-20 border border-amber-400 rounded px-1.5 py-0.5 text-sm text-right focus:outline-none focus:ring-2 focus:ring-amber-500"
+          disabled={isSaving}
+        />
+      </div>
+    )
+  }
+
+  return (
+    <button
+      onClick={onStartEdit}
+      className="hover:underline hover:text-amber-600 cursor-pointer"
+      title="Click to edit price"
+    >
+      ${Number(product.unitPrice).toFixed(2)}
+    </button>
+  )
+}
+
+interface ConfirmDialog {
+  productId: string
+  productName: string
+  oldPrice: number
+  newPrice: number
+}
+
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [categoryFilter, setCategoryFilter] = useState('')
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
+
+  // Stock edit state
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingValue, setEditingValue] = useState('')
   const [savingId, setSavingId] = useState<string | null>(null)
+
+  // Price edit state
+  const [editingPriceId, setEditingPriceId] = useState<string | null>(null)
+  const [editingPriceValue, setEditingPriceValue] = useState('')
+  const [savingPriceId, setSavingPriceId] = useState<string | null>(null)
+  const [confirmDialog, setConfirmDialog] = useState<ConfirmDialog | null>(null)
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   useEffect(() => {
     fetch('/api/products')
@@ -107,6 +184,7 @@ export default function AdminProductsPage() {
       .then((d) => { setProducts(d.products); setLoading(false) })
   }, [])
 
+  // Stock edit handlers
   function startEdit(product: Product) {
     setEditingId(product.id)
     setEditingValue(String(product.stockQuantity))
@@ -137,6 +215,75 @@ export default function AdminProductsPage() {
     setEditingValue('')
   }
 
+  // Price edit handlers
+  function startPriceEdit(product: Product) {
+    cancelEdit() // close stock edit if open
+    setEditingPriceId(product.id)
+    setEditingPriceValue(Number(product.unitPrice).toFixed(2))
+  }
+
+  function requestPriceSave(id: string) {
+    const newPrice = parseFloat(editingPriceValue)
+    if (isNaN(newPrice) || newPrice < 0) { cancelPriceEdit(); return }
+    const current = products.find((p) => p.id === id)
+    if (!current || newPrice === Number(current.unitPrice)) { cancelPriceEdit(); return }
+
+    setEditingPriceId(null) // close input
+    setConfirmDialog({
+      productId: id,
+      productName: current.name,
+      oldPrice: Number(current.unitPrice),
+      newPrice,
+    })
+  }
+
+  async function confirmPriceSave() {
+    if (!confirmDialog) return
+    const { productId, newPrice } = confirmDialog
+    setSavingPriceId(productId)
+    setConfirmDialog(null)
+    setSaveError(null)
+
+    const res = await fetch(`/api/products/${productId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ unitPrice: newPrice }),
+    })
+    if (res.ok) {
+      setProducts((prev) => prev.map((p) =>
+        p.id === productId ? { ...p, unitPrice: newPrice } : p
+      ))
+    } else {
+      setSaveError('Failed to update price. Please try again.')
+    }
+    setSavingPriceId(null)
+    setEditingPriceValue('')
+  }
+
+  function cancelPriceEdit() {
+    setEditingPriceId(null)
+    setEditingPriceValue('')
+    setConfirmDialog(null)
+  }
+
+  // Excel download
+  function downloadExcel() {
+    const rows = filtered.map((p) => ({
+      SKU: p.sku,
+      Name: p.name,
+      Category: p.category ? (CATEGORY_LABELS[p.category] ?? p.category) : '',
+      Price: Number(p.unitPrice),
+      Currency: p.currency,
+      Stock: p.stockQuantity,
+      Unit: p.unit,
+      Status: p.isActive ? 'Active' : 'Inactive',
+    }))
+    const ws = XLSX.utils.json_to_sheet(rows)
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Products')
+    XLSX.writeFile(wb, 'products.xlsx')
+  }
+
   const filtered = products.filter((p) => {
     const matchCat = !categoryFilter || p.category === categoryFilter
     const matchSearch = !search || p.name.toLowerCase().includes(search.toLowerCase()) || p.sku.toLowerCase().includes(search.toLowerCase())
@@ -148,6 +295,18 @@ export default function AdminProductsPage() {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Products</h1>
         <div className="flex gap-2">
+          <button
+            onClick={downloadExcel}
+            className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50"
+          >
+            Download Excel
+          </button>
+          <Link
+            href="/admin/products/price"
+            className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50"
+          >
+            Update Price (Excel)
+          </Link>
           <Link
             href="/admin/products/stock"
             className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50"
@@ -185,7 +344,14 @@ export default function AdminProductsPage() {
         <span className="text-sm text-gray-500 self-center">{filtered.length} products</span>
       </div>
 
-      <p className="text-xs text-gray-400 mb-3">Click on a stock number to edit it inline.</p>
+      <p className="text-xs text-gray-400 mb-3">Click on a price or stock number to edit it inline.</p>
+
+      {saveError && (
+        <div className="mb-3 px-4 py-2 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700 flex justify-between items-center">
+          {saveError}
+          <button onClick={() => setSaveError(null)} className="text-red-400 hover:text-red-600 ml-4">✕</button>
+        </div>
+      )}
 
       {/* Table */}
       <div className="bg-white rounded-xl border overflow-hidden">
@@ -205,13 +371,24 @@ export default function AdminProductsPage() {
             </thead>
             <tbody>
               {filtered.map((p) => (
-                <tr key={p.id} className={`border-b last:border-0 hover:bg-gray-50 ${savingId === p.id ? 'opacity-60' : ''}`}>
+                <tr key={p.id} className={`border-b last:border-0 hover:bg-gray-50 ${(savingId === p.id || savingPriceId === p.id) ? 'opacity-60' : ''}`}>
                   <td className="px-4 py-2 text-gray-500 font-mono text-xs">{p.sku}</td>
                   <td className="px-4 py-2 font-medium">{p.name}</td>
                   <td className="px-4 py-2 text-gray-600">
                     {p.category ? CATEGORY_LABELS[p.category] ?? p.category : '—'}
                   </td>
-                  <td className="px-4 py-2 text-right">${Number(p.unitPrice).toFixed(2)}</td>
+                  <td className="px-4 py-2 text-right">
+                    <PriceCell
+                      product={p}
+                      isEditing={editingPriceId === p.id}
+                      editValue={editingPriceValue}
+                      isSaving={savingPriceId === p.id}
+                      onStartEdit={() => startPriceEdit(p)}
+                      onChangeValue={setEditingPriceValue}
+                      onRequestSave={() => requestPriceSave(p.id)}
+                      onCancel={cancelPriceEdit}
+                    />
+                  </td>
                   <td className="px-4 py-2 text-center">
                     <StockCell
                       product={p}
@@ -240,6 +417,35 @@ export default function AdminProductsPage() {
           </table>
         )}
       </div>
+
+      {/* Price Change Confirmation Dialog */}
+      {confirmDialog && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-xl p-6 w-80 mx-4">
+            <h2 className="text-lg font-semibold text-gray-900 mb-2">가격을 변경하시겠습니까?</h2>
+            <p className="text-sm text-gray-600 mb-1">{confirmDialog.productName}</p>
+            <p className="text-sm mb-5">
+              <span className="line-through text-gray-400">${confirmDialog.oldPrice.toFixed(2)}</span>
+              <span className="mx-2 text-gray-400">→</span>
+              <span className="font-semibold text-gray-900">${confirmDialog.newPrice.toFixed(2)}</span>
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={cancelPriceEdit}
+                className="px-4 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50"
+              >
+                취소
+              </button>
+              <button
+                onClick={confirmPriceSave}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700"
+              >
+                변경
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

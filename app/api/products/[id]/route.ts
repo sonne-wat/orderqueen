@@ -12,6 +12,10 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const { name, description, category, unitPrice, currency, stockQuantity, lowStockThreshold, unit, isActive } =
     await req.json()
 
+  if (unitPrice !== undefined && (isNaN(Number(unitPrice)) || Number(unitPrice) < 0)) {
+    return NextResponse.json({ error: 'Invalid price' }, { status: 400 })
+  }
+
   const product = await prisma.product.update({
     where: { id },
     data: {
