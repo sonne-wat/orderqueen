@@ -12,16 +12,21 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const { items } = await req.json()
 
   await Promise.all(
-    items.map((item: { id: string; decision: string; confirmedQty?: number; rejectReason?: string }) =>
-      prisma.orderItem.update({
+    items.map((item: { id: string; decision: string; confirmedQty?: number; rejectReason?: string; unitPrice?: number; originalUnitPrice?: number }) => {
+      const price = item.unitPrice !== undefined ? Number(item.unitPrice) : undefined
+      if (price !== undefined && (isNaN(price) || price < 0)) return Promise.resolve()
+
+      return prisma.orderItem.update({
         where: { id: item.id, orderId: id },
         data: {
           decision: item.decision as never,
           confirmedQty: item.decision === 'ACCEPTED' ? item.confirmedQty : 0,
           rejectReason: item.decision === 'REJECTED' ? item.rejectReason : null,
+          ...(price !== undefined && { unitPrice: price }),
+          ...(item.originalUnitPrice !== undefined && { originalUnitPrice: item.originalUnitPrice }),
         },
       })
-    )
+    })
   )
 
   return NextResponse.json({ success: true })

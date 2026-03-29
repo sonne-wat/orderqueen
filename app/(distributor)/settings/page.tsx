@@ -75,11 +75,11 @@ export default function SettingsPage() {
     const trimmed = newEmail.trim().toLowerCase()
     if (!trimmed) return
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
-      setEmailError('유효한 이메일 주소를 입력해주세요.')
+      setEmailError('Please enter a valid email address.')
       return
     }
     if (notificationEmails.includes(trimmed)) {
-      setEmailError('이미 추가된 이메일입니다.')
+      setEmailError('This email has already been added.')
       return
     }
     setNotificationEmails((prev) => [...prev, trimmed])
@@ -109,7 +109,7 @@ export default function SettingsPage() {
 
         {saved && (
           <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded text-green-700 text-sm">
-            저장되었습니다.
+            Saved successfully.
           </div>
         )}
 
@@ -157,7 +157,7 @@ export default function SettingsPage() {
         <div className="bg-white rounded-xl border p-6 space-y-4">
           <div>
             <h2 className="font-semibold text-gray-700">Notification Emails</h2>
-            <p className="text-xs text-gray-400 mt-0.5">Admin으로부터 발송되는 이메일을 수신할 추가 주소를 등록하세요.</p>
+            <p className="text-xs text-gray-400 mt-0.5">Register additional email addresses to receive notifications from admin.</p>
           </div>
 
           {/* Existing emails */}
@@ -178,7 +178,7 @@ export default function SettingsPage() {
           )}
 
           {notificationEmails.length === 0 && (
-            <p className="text-xs text-gray-400">등록된 수신 이메일이 없습니다.</p>
+            <p className="text-xs text-gray-400">No notification emails registered.</p>
           )}
 
           {/* Add new email */}
@@ -188,7 +188,7 @@ export default function SettingsPage() {
               value={newEmail}
               onChange={(e) => { setNewEmail(e.target.value); setEmailError('') }}
               onKeyDown={(e) => e.key === 'Enter' && addEmail()}
-              placeholder="추가할 이메일 주소"
+              placeholder="Email address to add"
               className="flex-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <button

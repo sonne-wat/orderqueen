@@ -25,11 +25,11 @@ export default function LoginPage() {
 
     if (result?.error) {
       if (result.error.includes('PENDING')) {
-        setError('계정 승인 대기 중입니다. 관리자 승인 후 로그인 가능합니다.')
+        setError('Your account is pending approval. You can log in after admin approval.')
       } else if (result.error.includes('SUSPENDED')) {
-        setError('계정이 정지되었습니다. 관리자에게 문의해주세요.')
+        setError('Your account has been suspended. Please contact the admin.')
       } else {
-        setError('이메일 또는 비밀번호가 올바르지 않습니다.')
+        setError('Invalid email or password.')
       }
     } else {
       router.push('/dashboard')
@@ -83,9 +83,9 @@ export default function LoginPage() {
         </form>
 
         <p className="text-center text-sm text-gray-500 mt-4">
-          계정이 없으신가요?{' '}
+          Don&apos;t have an account?{' '}
           <Link href="/register" className="text-blue-600 hover:underline">
-            회원가입
+            Sign Up
           </Link>
         </p>
       </div>

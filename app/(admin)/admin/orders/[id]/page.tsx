@@ -32,11 +32,25 @@ export default function AdminOrderDetailPage() {
   const [cancelModalOpen, setCancelModalOpen] = useState(false)
   const [cancelReason, setCancelReason] = useState('')
   const [cancelLoading, setCancelLoading] = useState(false)
+  // Price override
+  const [priceOverrides, setPriceOverrides] = useState<Record<string, string>>({})
+  // Confirm modal
+  const [confirmModalOpen, setConfirmModalOpen] = useState(false)
+  const [confirmReason, setConfirmReason] = useState('SPECIAL_DISCOUNT')
+  const [confirmNote, setConfirmNote] = useState('')
+
+  const REASON_LABELS: Record<string, string> = {
+    SPECIAL_DISCOUNT: 'Special Discount',
+    FREE_GOODS: 'Free Goods (Compensation)',
+    PRICE_CORRECTION: 'Price Correction',
+    OTHER: 'Other',
+  }
 
   useEffect(() => {
     fetch(`/api/orders/${id}`)
       .then((r) => r.json())
       .then((d) => {
+        if (!d.order) return
         setOrder(d.order)
         const initial: typeof decisions = {}
         for (const item of d.order.items) {
@@ -201,21 +215,53 @@ export default function AdminOrderDetailPage() {
 
   async function handleConfirm() {
     setLoading(true)
-    // 1. Save item decisions
-    await fetch(`/api/orders/${id}/items`, {
+    setConfirmModalOpen(false)
+
+    // Check if any price overrides were applied
+    const hasAnyPriceChange = order!.items.some((item) => {
+      const override = priceOverrides[item.id]
+      return override !== undefined && Number(override) !== Number(item.unitPrice)
+    })
+
+    // 1. Save item decisions + price overrides
+    const itemsRes = await fetch(`/api/orders/${id}/items`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        items: Object.entries(decisions).map(([itemId, d]) => ({
-          id: itemId,
-          decision: d.decision,
-          confirmedQty: d.confirmedQty,
-          rejectReason: d.rejectReason,
-        })),
+        items: Object.entries(decisions).map(([itemId, d]) => {
+          const override = priceOverrides[itemId]
+          const item = order!.items.find((i) => i.id === itemId)
+          return {
+            id: itemId,
+            decision: d.decision,
+            confirmedQty: d.confirmedQty,
+            rejectReason: d.rejectReason,
+            ...(override !== undefined && {
+              unitPrice: Number(override),
+              // Only preserve originalUnitPrice if not previously changed
+              ...(item && item.originalUnitPrice == null && { originalUnitPrice: Number(item.unitPrice) }),
+            }),
+          }
+        }),
       }),
     })
-    // 2. Confirm order
-    await fetch(`/api/orders/${id}/confirm`, { method: 'POST' })
+
+    if (!itemsRes.ok) {
+      alert('Failed to save prices. Please try again.')
+      setLoading(false)
+      return
+    }
+
+    // 2. Confirm order with note
+    // Always save reason label if price changed (even without a note)
+    const noteText = hasAnyPriceChange || confirmNote.trim()
+      ? `[${REASON_LABELS[confirmReason]}]${confirmNote.trim() ? ` ${confirmNote.trim()}` : ''}`
+      : undefined
+    await fetch(`/api/orders/${id}/confirm`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ note: noteText }),
+    })
     router.refresh()
     window.location.reload()
   }
@@ -292,7 +338,7 @@ export default function AdminOrderDetailPage() {
                 disabled={statusLoading || selectedStatus === order.status}
                 className="px-3 py-1 bg-gray-700 text-white text-xs rounded-lg hover:bg-gray-800 disabled:opacity-40"
               >
-                변경
+                Apply
               </button>
             </div>
           </div>
@@ -385,6 +431,12 @@ export default function AdminOrderDetailPage() {
                 placeholder="Order notes..."
               />
             </div>
+            {/* Price Override Note */}
+            {order.confirmNote && (
+              <div className="col-span-3 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-xs text-amber-800">
+                <span className="font-medium">Price Change Note: </span>{order.confirmNote}
+              </div>
+            )}
             {/* Acknowledgement Number */}
             <div>
               <label className="text-xs font-medium text-gray-500 block mb-1">Acknowledgement Number</label>
@@ -453,19 +505,55 @@ export default function AdminOrderDetailPage() {
                     <td className="px-4 py-3 text-right">{item.requestedQty}</td>
                     <td className="px-4 py-3 text-center">
                       {d.decision === 'ACCEPTED' ? (
-                        <input
-                          type="number"
-                          min={0}
-                          value={d.confirmedQty}
-                          onChange={(e) => setDecisions({ ...decisions, [item.id]: { ...d, confirmedQty: Number(e.target.value) } })}
-                          disabled={order.status === 'CONFIRMED'}
-                          className="w-20 border rounded px-2 py-1 text-center text-sm disabled:bg-gray-50"
-                        />
+                        order.status === 'CONFIRMED' ? (
+                          d.confirmedQty !== item.requestedQty ? (
+                            <div className="flex flex-col items-center gap-0.5">
+                              <span className="text-xs text-gray-400 line-through">{item.requestedQty}</span>
+                              <span className="text-amber-700 font-medium">{d.confirmedQty}</span>
+                            </div>
+                          ) : (
+                            <span>{d.confirmedQty}</span>
+                          )
+                        ) : (
+                          <input
+                            type="number"
+                            min={0}
+                            value={d.confirmedQty}
+                            onChange={(e) => setDecisions({ ...decisions, [item.id]: { ...d, confirmedQty: Number(e.target.value) } })}
+                            className="w-20 border rounded px-2 py-1 text-center text-sm"
+                          />
+                        )
                       ) : (
                         <span className="text-gray-400">-</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-right">${Number(item.unitPrice).toFixed(2)}</td>
+                    <td className="px-4 py-3 text-right">
+                      {order.status === 'SUBMITTED' ? (
+                        <div className="flex items-center justify-end gap-1">
+                          {priceOverrides[item.id] !== undefined &&
+                            Number(priceOverrides[item.id]) !== Number(item.unitPrice) && (
+                            <span className="text-xs text-gray-400 line-through">${Number(item.unitPrice).toFixed(2)}</span>
+                          )}
+                          <input
+                            type="number"
+                            min={0}
+                            step="0.01"
+                            value={priceOverrides[item.id] ?? Number(item.unitPrice).toFixed(2)}
+                            onChange={(e) => setPriceOverrides((prev) => ({ ...prev, [item.id]: e.target.value }))}
+                            className="w-24 border rounded px-2 py-1 text-right text-sm focus:outline-none focus:ring-1 focus:ring-amber-400"
+                          />
+                        </div>
+                      ) : (
+                        item.originalUnitPrice != null && Number(item.originalUnitPrice) !== Number(item.unitPrice) ? (
+                          <div className="flex flex-col items-end gap-0.5">
+                            <span className="text-xs text-gray-400 line-through">${Number(item.originalUnitPrice).toFixed(2)}</span>
+                            <span className="text-amber-700 font-medium">${Number(item.unitPrice).toFixed(2)}</span>
+                          </div>
+                        ) : (
+                          <span>${Number(item.unitPrice).toFixed(2)}</span>
+                        )
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-center">
                       {order.status !== 'CONFIRMED' ? (
                         <select
@@ -495,7 +583,7 @@ export default function AdminOrderDetailPage() {
           <div className="flex gap-2">
             {order.status === 'SUBMITTED' && (
               <button
-                onClick={handleConfirm}
+                onClick={() => setConfirmModalOpen(true)}
                 disabled={loading}
                 className="px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
               >
@@ -550,6 +638,91 @@ export default function AdminOrderDetailPage() {
           </div>
         </div>
       </main>
+
+      {/* Confirm Order Modal */}
+      {confirmModalOpen && (() => {
+        const changedItems = order.items.filter((item) => {
+          const override = priceOverrides[item.id]
+          return override !== undefined && Number(override) !== Number(item.unitPrice)
+        })
+        const hasPriceChange = changedItems.length > 0
+        const noteRequired = hasPriceChange && confirmReason === 'OTHER' && !confirmNote.trim()
+        return (
+          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+            <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md mx-4">
+              <h3 className="text-base font-semibold mb-1">Confirm Order</h3>
+              <p className="text-sm text-gray-500 mb-4">Confirm the order. Please review the details below.</p>
+
+              {/* Price change summary */}
+              {hasPriceChange && (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-4 text-xs text-amber-800">
+                  <p className="font-medium mb-1">Price Changes</p>
+                  {changedItems.map((item) => (
+                    <p key={item.id}>
+                      {item.product.name}:{' '}
+                      <span className="line-through text-amber-500">${Number(item.unitPrice).toFixed(2)}</span>
+                      {' → '}
+                      <span className="font-semibold">${Number(priceOverrides[item.id]).toFixed(2)}</span>
+                    </p>
+                  ))}
+                </div>
+              )}
+
+              {/* Reason */}
+              <div className="mb-3">
+                <label className="text-xs font-medium text-gray-600 block mb-1">
+                  Change Reason {hasPriceChange && <span className="text-red-500">*</span>}
+                </label>
+                <select
+                  value={confirmReason}
+                  onChange={(e) => setConfirmReason(e.target.value)}
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"
+                >
+                  <option value="SPECIAL_DISCOUNT">Special Discount</option>
+                  <option value="FREE_GOODS">Free Goods (Compensation)</option>
+                  <option value="PRICE_CORRECTION">Price Correction</option>
+                  <option value="OTHER">Other</option>
+                </select>
+              </div>
+
+              {/* Note */}
+              <div className="mb-5">
+                <label className="text-xs font-medium text-gray-600 block mb-1">
+                  Note{' '}
+                  {hasPriceChange && confirmReason === 'OTHER'
+                    ? <span className="text-red-500">* (required when Other is selected)</span>
+                    : <span className="text-gray-400">(optional)</span>}
+                </label>
+                <textarea
+                  value={confirmNote}
+                  onChange={(e) => setConfirmNote(e.target.value)}
+                  rows={3}
+                  placeholder="e.g. VIP customer 10% discount applied"
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400 resize-none"
+                  autoFocus={hasPriceChange}
+                />
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={() => { setConfirmModalOpen(false); setConfirmNote('') }}
+                  disabled={loading}
+                  className="px-4 py-2 border rounded-lg text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirm}
+                  disabled={loading || noteRequired}
+                  className="px-5 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {loading ? 'Confirming...' : 'Confirm Order'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
 
       {/* Cancel Order Modal */}
       {cancelModalOpen && (

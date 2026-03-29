@@ -132,18 +132,18 @@ export default function DistributorDetailPage() {
         </div>
 
         {saved && (
-          <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded text-green-700 text-sm">저장되었습니다.</div>
+          <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded text-green-700 text-sm">Saved successfully.</div>
         )}
         {saveError && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded text-red-700 text-sm">저장 실패: {saveError}</div>
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded text-red-700 text-sm">Save failed: {saveError}</div>
         )}
 
-        {/* 승인 액션 배너 */}
+        {/* Approval action banner */}
         {d.status === 'PENDING' && (
           <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-xl flex items-center justify-between">
             <div>
-              <div className="font-semibold text-yellow-800">승인 대기 중</div>
-              <div className="text-sm text-yellow-600 mt-0.5">계정 정보를 확인하고 승인 또는 거절해주세요.</div>
+              <div className="font-semibold text-yellow-800">Pending Approval</div>
+              <div className="text-sm text-yellow-600 mt-0.5">Please review the account information and approve or reject.</div>
             </div>
             <div className="flex gap-2">
               <button
@@ -151,14 +151,14 @@ export default function DistributorDetailPage() {
                 disabled={statusChanging}
                 className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-50"
               >
-                승인 (Approve)
+                Approve
               </button>
               <button
                 onClick={() => handleStatusChange('SUSPENDED')}
                 disabled={statusChanging}
                 className="px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 disabled:opacity-50"
               >
-                거절 (Reject)
+                Reject
               </button>
             </div>
           </div>
@@ -169,14 +169,14 @@ export default function DistributorDetailPage() {
           <div className="bg-white rounded-xl border p-6 space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="font-semibold text-gray-700">Profile & Settings</h2>
-              {/* 상태 변경 버튼 (승인된/정지된 계정) */}
+              {/* Status change buttons (active/suspended accounts) */}
               {d.status === 'ACTIVE' && (
                 <button
                   onClick={() => handleStatusChange('SUSPENDED')}
                   disabled={statusChanging}
                   className="px-3 py-1 text-xs border border-red-300 text-red-600 rounded-lg hover:bg-red-50 disabled:opacity-50"
                 >
-                  계정 정지
+                  Suspend Account
                 </button>
               )}
               {d.status === 'SUSPENDED' && (
@@ -185,7 +185,7 @@ export default function DistributorDetailPage() {
                   disabled={statusChanging}
                   className="px-3 py-1 text-xs border border-green-300 text-green-600 rounded-lg hover:bg-green-50 disabled:opacity-50"
                 >
-                  계정 재활성화
+                  Reactivate Account
                 </button>
               )}
             </div>
@@ -195,7 +195,7 @@ export default function DistributorDetailPage() {
               <div>Joined: <span className="text-gray-900">{new Date(d.createdAt).toLocaleDateString('ko-KR')}</span></div>
             </div>
 
-            {/* 기본 정보 */}
+            {/* Basic info */}
             <div className="space-y-3">
               <div>
                 <label className="block text-xs font-medium text-gray-500 mb-1">Phone</label>
@@ -223,7 +223,7 @@ export default function DistributorDetailPage() {
                   value={form.shippingAddress}
                   onChange={(e) => setForm({ ...form, shippingAddress: e.target.value })}
                   rows={2}
-                  placeholder="배송지 주소 (회사 주소와 다를 경우)"
+                  placeholder="Shipping address (if different from company address)"
                   className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -244,7 +244,7 @@ export default function DistributorDetailPage() {
                   onChange={(e) => setForm({ ...form, adminNotes: e.target.value })}
                   rows={2}
                   className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="VIP 고객, 특이사항..."
+                  placeholder="VIP customer, special notes..."
                 />
               </div>
             </div>
@@ -350,7 +350,7 @@ export default function DistributorDetailPage() {
                           style={{ width: `${(m.amount / maxMonthlyAmount) * 100}%` }}
                         />
                       </div>
-                      <span className="w-8 text-center text-gray-600">{m.count}건</span>
+                      <span className="w-8 text-center text-gray-600">{m.count}</span>
                       <span className="w-24 text-right text-gray-700 font-medium">${m.amount.toLocaleString('en-US', { maximumFractionDigits: 0 })}</span>
                     </div>
                   ))}
@@ -371,7 +371,7 @@ export default function DistributorDetailPage() {
                 <div>
                   <div className="text-xs text-gray-400 mb-2">By Mode</div>
                   {Object.entries(a.shipmentStats.byMode).map(([k, v]) => (
-                    <div key={k} className="flex gap-2"><span className="text-gray-500">{k}:</span><span className="font-medium">{v}건</span></div>
+                    <div key={k} className="flex gap-2"><span className="text-gray-500">{k}:</span><span className="font-medium">{v}</span></div>
                   ))}
                   {Object.keys(a.shipmentStats.byMode).length === 0 && <span className="text-gray-400">-</span>}
                 </div>

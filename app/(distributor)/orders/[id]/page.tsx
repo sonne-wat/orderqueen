@@ -34,15 +34,15 @@ export default function OrderDetailPage() {
     const res = await fetch(`/api/orders/${id}/submit`, { method: 'POST' })
     setSubmitting(false)
     if (!res.ok) {
-      const data = await res.json().catch(() => ({ error: '주문 제출에 실패했습니다.' }))
-      setSubmitError(data.error ?? '주문 제출에 실패했습니다.')
+      const data = await res.json().catch(() => ({ error: 'Failed to submit order.' }))
+      setSubmitError(data.error ?? 'Failed to submit order.')
       return
     }
     router.push('/dashboard')
   }
 
   async function handleDelete() {
-    if (!confirm('이 주문을 삭제하시겠습니까?')) return
+    if (!confirm('Are you sure you want to delete this order?')) return
     setDeleting(true)
     const res = await fetch(`/api/orders/${id}`, { method: 'DELETE' })
     setDeleting(false)
@@ -74,7 +74,7 @@ export default function OrderDetailPage() {
               href={`/orders/new?draft=${id}`}
               className="px-3 py-1.5 border rounded-lg text-sm text-gray-600 hover:bg-gray-50"
             >
-              수정하기
+              Edit
             </Link>
           )}
         </div>
@@ -82,17 +82,25 @@ export default function OrderDetailPage() {
         {/* Draft notice */}
         {isDraft && (
           <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl text-sm text-blue-800">
-            주문 내용을 확인하신 후 <strong>주문 제출</strong>을 눌러 최종 제출해주세요.
+            Please review your order and click <strong>Submit Order</strong> to finalize.
+          </div>
+        )}
+
+        {/* Price change notice */}
+        {order.confirmNote && !isCancelled && (
+          <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-sm">
+            <div className="font-semibold text-amber-800 mb-1">Price Change Notice</div>
+            <div className="text-amber-700">{order.confirmNote}</div>
           </div>
         )}
 
         {/* Cancellation notice */}
         {isCancelled && (
           <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-sm">
-            <div className="font-semibold text-red-700 mb-1">이 주문이 취소되었습니다.</div>
+            <div className="font-semibold text-red-700 mb-1">This order has been cancelled.</div>
             {order.cancelReason && (
               <div className="text-red-600">
-                <span className="font-medium">취소 사유: </span>
+                <span className="font-medium">Cancellation Reason: </span>
                 {order.cancelReason}
               </div>
             )}
@@ -172,7 +180,18 @@ export default function OrderDetailPage() {
                     {!isDraft && (
                       <>
                         <td className="px-4 py-3 text-right">
-                          {item.confirmedQty ?? <span className="text-gray-400">-</span>}
+                          {item.confirmedQty != null ? (
+                            item.confirmedQty !== item.requestedQty ? (
+                              <div className="flex flex-col items-end gap-0.5">
+                                <span className="text-xs text-gray-400 line-through">{item.requestedQty}</span>
+                                <span className="text-amber-700 font-medium">{item.confirmedQty}</span>
+                              </div>
+                            ) : (
+                              <span>{item.confirmedQty}</span>
+                            )
+                          ) : (
+                            <span className="text-gray-400">-</span>
+                          )}
                         </td>
                         <td className="px-4 py-3 text-center">
                           {item.decision === 'ACCEPTED' && <span className="text-green-600 text-xs">✅ Accepted</span>}
@@ -181,7 +200,16 @@ export default function OrderDetailPage() {
                         </td>
                       </>
                     )}
-                    <td className="px-4 py-3 text-right">${Number(item.unitPrice).toFixed(2)}</td>
+                    <td className="px-4 py-3 text-right">
+                      {item.originalUnitPrice !== null && item.originalUnitPrice !== undefined && Number(item.originalUnitPrice) !== Number(item.unitPrice) ? (
+                        <div className="flex flex-col items-end gap-0.5">
+                          <span className="text-xs text-gray-400 line-through">${Number(item.originalUnitPrice).toFixed(2)}</span>
+                          <span className="text-amber-700 font-medium">${Number(item.unitPrice).toFixed(2)}</span>
+                        </div>
+                      ) : (
+                        <span>${Number(item.unitPrice).toFixed(2)}</span>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-right font-medium">${(Number(item.unitPrice) * qty).toFixed(2)}</td>
                   </tr>
                 )
@@ -221,20 +249,20 @@ export default function OrderDetailPage() {
                 disabled={deleting}
                 className="px-4 py-2 border border-red-200 text-red-600 rounded-lg text-sm font-medium hover:bg-red-50 disabled:opacity-50"
               >
-                {deleting ? '삭제 중...' : '삭제'}
+                {deleting ? 'Deleting...' : 'Delete'}
               </button>
               <Link
                 href={`/orders/new?draft=${id}`}
                 className="px-4 py-2 border rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50"
               >
-                ← 수정하기
+                ← Edit
               </Link>
               <button
                 onClick={handleSubmit}
                 disabled={submitting}
                 className="px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
               >
-                {submitting ? '제출 중...' : '주문 제출'}
+                {submitting ? 'Submitting...' : 'Submit Order'}
               </button>
             </div>
           ) : (

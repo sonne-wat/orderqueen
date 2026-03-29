@@ -23,7 +23,7 @@ export default function RegisterPage() {
 
     if (!res.ok) {
       const data = await res.json()
-      setError(data.error ?? '회원가입에 실패했습니다.')
+      setError(data.error ?? 'Registration failed.')
     } else {
       router.push('/login?registered=1')
     }
@@ -33,7 +33,7 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="w-full max-w-md bg-white rounded-xl shadow p-8">
-        <h1 className="text-2xl font-bold text-center mb-6">Distributor 회원가입</h1>
+        <h1 className="text-2xl font-bold text-center mb-6">Distributor Sign Up</h1>
 
         {error && (
           <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded text-red-600 text-sm">
@@ -43,10 +43,10 @@ export default function RegisterPage() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {[
-            { label: '이름 *', key: 'name', type: 'text', placeholder: '홍길동' },
-            { label: '회사명', key: 'company', type: 'text', placeholder: 'ABC Trading Co.' },
+            { label: 'Name *', key: 'name', type: 'text', placeholder: 'John Doe' },
+            { label: 'Company', key: 'company', type: 'text', placeholder: 'ABC Trading Co.' },
             { label: 'Email *', key: 'email', type: 'email', placeholder: 'your@email.com' },
-            { label: 'Password *', key: 'password', type: 'password', placeholder: '8자 이상' },
+            { label: 'Password *', key: 'password', type: 'password', placeholder: '8+ characters' },
           ].map(({ label, key, type, placeholder }) => (
             <div key={key}>
               <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
@@ -65,13 +65,13 @@ export default function RegisterPage() {
             disabled={loading}
             className="w-full bg-blue-600 text-white py-2 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 transition"
           >
-            {loading ? 'Registering...' : '가입하기'}
+            {loading ? 'Registering...' : 'Sign Up'}
           </button>
         </form>
 
         <p className="text-center text-sm text-gray-500 mt-4">
-          이미 계정이 있으신가요?{' '}
-          <Link href="/login" className="text-blue-600 hover:underline">로그인</Link>
+          Already have an account?{' '}
+          <Link href="/login" className="text-blue-600 hover:underline">Sign In</Link>
         </p>
       </div>
     </div>

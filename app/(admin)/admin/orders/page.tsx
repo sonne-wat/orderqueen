@@ -164,7 +164,7 @@ export default async function AdminOrdersPage({
         {pendingAction.length > 0 && (
           <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-3">
             <span className="w-2 h-2 bg-amber-400 rounded-full animate-pulse flex-shrink-0" />
-            <span className="text-sm text-amber-800 font-medium">{pendingAction.length}개 주문이 처리를 기다리고 있습니다</span>
+            <span className="text-sm text-amber-800 font-medium">{pendingAction.length} order(s) waiting for action</span>
           </div>
         )}
 

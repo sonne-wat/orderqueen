@@ -162,7 +162,7 @@ export default function NewOrderPage() {
   }
 
   async function handleSaveCart() {
-    if (items.length === 0) { setError('최소 1개 이상의 제품을 선택해주세요.'); return }
+    if (items.length === 0) { setError('Please select at least one product.'); return }
     setLoading(true)
     setError('')
 
@@ -184,7 +184,7 @@ export default function NewOrderPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       })
-      if (!res.ok) { setError('저장에 실패했습니다.'); setLoading(false); return }
+      if (!res.ok) { setError('Failed to save.'); setLoading(false); return }
     } else {
       // Create new draft
       const res = await fetch('/api/orders', {
@@ -192,7 +192,7 @@ export default function NewOrderPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       })
-      if (!res.ok) { setError('주문 생성에 실패했습니다.'); setLoading(false); return }
+      if (!res.ok) { setError('Failed to create order.'); setLoading(false); return }
       const data = await res.json()
       orderId = data.id
     }
@@ -209,11 +209,11 @@ export default function NewOrderPage() {
       <main className="max-w-4xl mx-auto px-6 py-8">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-lg font-semibold">
-            {draftId ? '주문 수정' : '새 주문'}
+            {draftId ? 'Edit Order' : 'New Order'}
           </h1>
           {items.length > 0 && (
             <div className="text-sm text-gray-500">
-              <span className="font-semibold text-gray-900">{items.length}종</span> 선택 중
+              <span className="font-semibold text-gray-900">{items.length}</span> selected
             </div>
           )}
         </div>
@@ -416,7 +416,7 @@ export default function NewOrderPage() {
             onChange={(e) => setNotes(e.target.value)}
             rows={2}
             className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="추가 요청사항..."
+            placeholder="Additional notes..."
           />
         </div>
 
@@ -424,9 +424,9 @@ export default function NewOrderPage() {
         <div className="bg-white rounded-xl border p-4 flex items-center justify-between">
           <div className="text-sm text-gray-600">
             {items.length > 0 ? (
-              <>선택 <span className="font-semibold text-gray-900">{items.length}종</span> · 합계 <span className="font-semibold text-gray-900">${total.toFixed(2)} USD</span></>
+              <><span className="font-semibold text-gray-900">{items.length}</span> items · Total <span className="font-semibold text-gray-900">${total.toFixed(2)} USD</span></>
             ) : (
-              <span className="text-gray-400">상품을 선택해주세요</span>
+              <span className="text-gray-400">Select products to add</span>
             )}
           </div>
           <button
@@ -434,7 +434,7 @@ export default function NewOrderPage() {
             disabled={loading || items.length === 0}
             className="px-5 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? '저장 중...' : draftId ? '수정 저장하기' : '장바구니에 저장'}
+            {loading ? 'Saving...' : draftId ? 'Save Changes' : 'Save to Cart'}
           </button>
         </div>
       </main>

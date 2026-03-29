@@ -82,7 +82,7 @@ export default function AnalyticsPage() {
                         style={{ width: `${(m.amount / maxMonthlyAmount) * 100}%` }}
                       />
                     </div>
-                    <span className="w-8 text-center text-gray-500">{m.count}건</span>
+                    <span className="w-8 text-center text-gray-500">{m.count}</span>
                     <span className="w-28 text-right font-medium text-gray-800">
                       ${m.amount.toLocaleString('en-US', { maximumFractionDigits: 0 })}
                     </span>

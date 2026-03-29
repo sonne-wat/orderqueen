@@ -157,8 +157,8 @@ export default async function DistributorDashboard({
 
         {orders.length === 0 ? (
           <div className="bg-white rounded-xl border p-12 text-center text-gray-400">
-            <p className="text-lg mb-2">주문 내역이 없습니다</p>
-            <Link href="/orders/new" className="text-blue-600 hover:underline text-sm">첫 주문 접수하기</Link>
+            <p className="text-lg mb-2">No orders found</p>
+            <Link href="/orders/new" className="text-blue-600 hover:underline text-sm">Place your first order</Link>
           </div>
         ) : (
           <div className="space-y-6">
@@ -308,10 +308,10 @@ export default async function DistributorDashboard({
                       </div>
                       <div className="flex gap-3">
                         <Link href={`/orders/new?draft=${order.id}`} className="text-xs text-gray-500 hover:underline">
-                          수정 →
+                          Edit →
                         </Link>
                         <Link href={`/orders/${order.id}`} className="text-xs text-blue-600 hover:underline">
-                          확인 후 제출 →
+                          Review &amp; Submit →
                         </Link>
                       </div>
                     </div>
@@ -407,7 +407,7 @@ export default async function DistributorDashboard({
                       </div>
                       {order.cancelReason && (
                         <p className="mt-1 text-xs text-red-600">
-                          사유: {order.cancelReason}
+                          Reason: {order.cancelReason}
                         </p>
                       )}
                     </div>

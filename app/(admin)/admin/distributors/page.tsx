@@ -35,7 +35,7 @@ export default async function DistributorsPage() {
       <main className="max-w-6xl mx-auto px-6 py-8">
         <h1 className="text-xl font-bold mb-6">Distributor Management ({distributors.length})</h1>
 
-        {/* 승인 대기 섹션 */}
+        {/* Pending approval section */}
         {pending.length > 0 && (
           <div className="mb-6 bg-yellow-50 border border-yellow-200 rounded-xl p-4">
             <div className="flex items-center gap-2 mb-3">
@@ -81,7 +81,7 @@ export default async function DistributorsPage() {
           </div>
         )}
 
-        {/* 전체 목록 */}
+        {/* Full list */}
         <div className="bg-white rounded-xl border overflow-hidden">
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b">
@@ -98,7 +98,7 @@ export default async function DistributorsPage() {
             </thead>
             <tbody>
               {distributors.length === 0 ? (
-                <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-400">등록된 Distributor가 없습니다</td></tr>
+                <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-400">No distributors registered</td></tr>
               ) : (
                 <>
                   {[...others, ...pending].map((d) => {

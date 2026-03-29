@@ -66,6 +66,7 @@ model Order {
   paymentSkipped        Boolean       @default(false)
   freightForwarder      FreightForwarder?
   cancelReason          String?
+  confirmNote           String?
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
   items             OrderItem[]
@@ -82,11 +83,12 @@ model OrderItem {
   order        Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
   productId    String
   product      Product       @relation(fields: [productId], references: [id])
-  requestedQty Int
-  confirmedQty Int?
-  unitPrice    Decimal       @db.Decimal(10, 2)
-  decision     ItemDecision?
-  rejectReason String?
+  requestedQty      Int
+  confirmedQty      Int?
+  unitPrice         Decimal  @db.Decimal(10, 2)
+  originalUnitPrice Decimal? @db.Decimal(10, 2)
+  decision          ItemDecision?
+  rejectReason      String?
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 

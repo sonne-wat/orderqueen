@@ -422,7 +422,7 @@ export default function AdminProductsPage() {
       {confirmDialog && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl shadow-xl p-6 w-80 mx-4">
-            <h2 className="text-lg font-semibold text-gray-900 mb-2">가격을 변경하시겠습니까?</h2>
+            <h2 className="text-lg font-semibold text-gray-900 mb-2">Confirm Price Change</h2>
             <p className="text-sm text-gray-600 mb-1">{confirmDialog.productName}</p>
             <p className="text-sm mb-5">
               <span className="line-through text-gray-400">${confirmDialog.oldPrice.toFixed(2)}</span>
@@ -434,13 +434,13 @@ export default function AdminProductsPage() {
                 onClick={cancelPriceEdit}
                 className="px-4 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50"
               >
-                취소
+                Cancel
               </button>
               <button
                 onClick={confirmPriceSave}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700"
               >
-                변경
+                Apply
               </button>
             </div>
           </div>

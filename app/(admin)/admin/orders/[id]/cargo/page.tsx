@@ -70,7 +70,7 @@ export default function CargoDetailsPage() {
         </div>
         {saved && (
           <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded text-green-700 text-sm">
-            저장되었습니다.
+            Saved successfully.
           </div>
         )}
 

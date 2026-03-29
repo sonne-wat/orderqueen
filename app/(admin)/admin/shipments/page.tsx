@@ -47,7 +47,7 @@ export default async function ShipmentsPage() {
             </thead>
             <tbody>
               {shipments.length === 0 ? (
-                <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-400">선적 정보가 없습니다</td></tr>
+                <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-400">No shipment data</td></tr>
               ) : shipments.map((s) => {
                 const statusConfig = SHIPMENT_STATUS_CONFIG[s.status]
                 return (
