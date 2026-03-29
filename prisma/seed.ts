@@ -18,6 +18,7 @@ async function main() {
       name: 'Admin',
       company: 'Orderqueen',
       role: 'ADMIN',
+      status: 'ACTIVE',
     },
   })
 
@@ -32,6 +33,7 @@ async function main() {
       name: 'Hong Gil-dong',
       company: 'ABC Trading Co.',
       role: 'DISTRIBUTOR',
+      status: 'ACTIVE',
     },
   })
 
