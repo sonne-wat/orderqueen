@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { OrderStatusTimeline } from '@/components/orders/OrderStatusTimeline'
 import { OrderStatusBadge } from '@/components/orders/OrderStatusBadge'
 import { orderTotal } from '@/lib/utils/order'
+import { DashboardDateFilter } from '@/components/ui/DashboardDateFilter'
 
 const STATUS_MESSAGE: Record<string, { msg: string; color: string }> = {
   SUBMITTED:         { msg: 'Your order has been received. Admin is reviewing the items.', color: 'text-blue-600 bg-blue-50' },
@@ -28,15 +29,36 @@ type BatchGroup = {
   orders: { id: string; orderNumber: string; status: string; createdAt: Date; requestedDelivery: Date | null; shippingMode: string | null; items: { unitPrice: unknown; requestedQty: number; confirmedQty: number | null }[] }[]
 }
 
-export default async function DistributorDashboard() {
+export default async function DistributorDashboard({
+  searchParams,
+}: {
+  searchParams: Promise<{ dateFrom?: string; dateTo?: string; all?: string }>
+}) {
   const session = await auth()
   if (!session) redirect('/login')
 
   const distributorId = session.user!.id!
 
+  const { dateFrom, dateTo, all } = await searchParams
+
+  // Default: last 3 months (unless "all=1" or custom range provided)
+  const isAllTime = all === '1'
+  const defaultFrom = new Date()
+  defaultFrom.setMonth(defaultFrom.getMonth() - 3)
+  defaultFrom.setHours(0, 0, 0, 0)
+
+  const fromDate = isAllTime ? undefined : dateFrom ? new Date(dateFrom + 'T00:00:00Z') : defaultFrom
+  const toDate = isAllTime ? undefined : dateTo ? new Date(dateTo + 'T23:59:59Z') : new Date()
+
+  const filterFrom = isAllTime ? '' : (dateFrom ?? defaultFrom.toISOString().slice(0, 10))
+  const filterTo = isAllTime ? '' : (dateTo ?? '')
+
   const [orders, pendingRequestOrders, batchOrderRows] = await Promise.all([
     prisma.order.findMany({
-      where: { distributorId },
+      where: {
+        distributorId,
+        ...(fromDate || toDate ? { createdAt: { gte: fromDate, lte: toDate } } : {}),
+      },
       include: { items: { include: { product: true } } },
       orderBy: { createdAt: 'desc' },
     }),
@@ -110,6 +132,9 @@ export default async function DistributorDashboard() {
   return (
     <div>
       <main className="max-w-5xl mx-auto px-6 py-8">
+        <div className="mb-4">
+          <DashboardDateFilter dateFrom={filterFrom} dateTo={filterTo} allTime={isAllTime} />
+        </div>
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-semibold">My Orders ({orders.length})</h2>
           <div className="flex items-center gap-2">

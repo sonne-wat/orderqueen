@@ -21,32 +21,88 @@ type RequestRow = {
 type OrderIdRow = { orderId: string; shipmentRequestId: string }
 
 // GET /api/shipment-requests
-export async function GET(_: NextRequest) {
+export async function GET(req: NextRequest) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+  const { searchParams } = new URL(req.url)
+  const dateFrom = searchParams.get('dateFrom')
+  const dateTo = searchParams.get('dateTo')
+  const from: Date | null = dateFrom ? new Date(dateFrom + 'T00:00:00Z') : null
+  const to: Date | null = dateTo ? new Date(dateTo + 'T23:59:59Z') : null
+
   const requests: RequestRow[] = session.user?.role === 'ADMIN'
-    ? await prisma.$queryRaw`
-        SELECT sr.id, sr."distributorId", sr.status::text, sr.type::text, sr."requestedAt", sr."reviewedAt",
-               sr."rejectionNote", sr."targetBatchId",
-               u.name AS "distributorName", u.email AS "distributorEmail", u.company AS "distributorCompany",
-               bs.id AS "batchShipmentId", bs."batchNumber"
-        FROM shipment_requests sr
-        JOIN users u ON u.id = sr."distributorId"
-        LEFT JOIN batch_shipments bs ON bs."shipmentRequestId" = sr.id
-        ORDER BY sr."requestedAt" DESC
-      `
-    : await prisma.$queryRaw`
-        SELECT sr.id, sr."distributorId", sr.status::text, sr.type::text, sr."requestedAt", sr."reviewedAt",
-               sr."rejectionNote", sr."targetBatchId",
-               u.name AS "distributorName", u.email AS "distributorEmail", u.company AS "distributorCompany",
-               bs.id AS "batchShipmentId", bs."batchNumber"
-        FROM shipment_requests sr
-        JOIN users u ON u.id = sr."distributorId"
-        LEFT JOIN batch_shipments bs ON bs."shipmentRequestId" = sr.id
-        WHERE sr."distributorId" = ${session.user?.id}
-        ORDER BY sr."requestedAt" DESC
-      `
+    ? (from && to)
+      ? await prisma.$queryRaw`
+          SELECT sr.id, sr."distributorId", sr.status::text, sr.type::text, sr."requestedAt", sr."reviewedAt",
+                 sr."rejectionNote", sr."targetBatchId",
+                 u.name AS "distributorName", u.email AS "distributorEmail", u.company AS "distributorCompany",
+                 bs.id AS "batchShipmentId", bs."batchNumber"
+          FROM shipment_requests sr
+          JOIN users u ON u.id = sr."distributorId"
+          LEFT JOIN batch_shipments bs ON bs."shipmentRequestId" = sr.id
+          WHERE sr."requestedAt" >= ${from} AND sr."requestedAt" <= ${to}
+          ORDER BY sr."requestedAt" DESC
+        `
+      : from
+      ? await prisma.$queryRaw`
+          SELECT sr.id, sr."distributorId", sr.status::text, sr.type::text, sr."requestedAt", sr."reviewedAt",
+                 sr."rejectionNote", sr."targetBatchId",
+                 u.name AS "distributorName", u.email AS "distributorEmail", u.company AS "distributorCompany",
+                 bs.id AS "batchShipmentId", bs."batchNumber"
+          FROM shipment_requests sr
+          JOIN users u ON u.id = sr."distributorId"
+          LEFT JOIN batch_shipments bs ON bs."shipmentRequestId" = sr.id
+          WHERE sr."requestedAt" >= ${from}
+          ORDER BY sr."requestedAt" DESC
+        `
+      : await prisma.$queryRaw`
+          SELECT sr.id, sr."distributorId", sr.status::text, sr.type::text, sr."requestedAt", sr."reviewedAt",
+                 sr."rejectionNote", sr."targetBatchId",
+                 u.name AS "distributorName", u.email AS "distributorEmail", u.company AS "distributorCompany",
+                 bs.id AS "batchShipmentId", bs."batchNumber"
+          FROM shipment_requests sr
+          JOIN users u ON u.id = sr."distributorId"
+          LEFT JOIN batch_shipments bs ON bs."shipmentRequestId" = sr.id
+          ORDER BY sr."requestedAt" DESC
+        `
+    : (from && to)
+      ? await prisma.$queryRaw`
+          SELECT sr.id, sr."distributorId", sr.status::text, sr.type::text, sr."requestedAt", sr."reviewedAt",
+                 sr."rejectionNote", sr."targetBatchId",
+                 u.name AS "distributorName", u.email AS "distributorEmail", u.company AS "distributorCompany",
+                 bs.id AS "batchShipmentId", bs."batchNumber"
+          FROM shipment_requests sr
+          JOIN users u ON u.id = sr."distributorId"
+          LEFT JOIN batch_shipments bs ON bs."shipmentRequestId" = sr.id
+          WHERE sr."distributorId" = ${session.user?.id}
+            AND sr."requestedAt" >= ${from} AND sr."requestedAt" <= ${to}
+          ORDER BY sr."requestedAt" DESC
+        `
+      : from
+      ? await prisma.$queryRaw`
+          SELECT sr.id, sr."distributorId", sr.status::text, sr.type::text, sr."requestedAt", sr."reviewedAt",
+                 sr."rejectionNote", sr."targetBatchId",
+                 u.name AS "distributorName", u.email AS "distributorEmail", u.company AS "distributorCompany",
+                 bs.id AS "batchShipmentId", bs."batchNumber"
+          FROM shipment_requests sr
+          JOIN users u ON u.id = sr."distributorId"
+          LEFT JOIN batch_shipments bs ON bs."shipmentRequestId" = sr.id
+          WHERE sr."distributorId" = ${session.user?.id}
+            AND sr."requestedAt" >= ${from}
+          ORDER BY sr."requestedAt" DESC
+        `
+      : await prisma.$queryRaw`
+          SELECT sr.id, sr."distributorId", sr.status::text, sr.type::text, sr."requestedAt", sr."reviewedAt",
+                 sr."rejectionNote", sr."targetBatchId",
+                 u.name AS "distributorName", u.email AS "distributorEmail", u.company AS "distributorCompany",
+                 bs.id AS "batchShipmentId", bs."batchNumber"
+          FROM shipment_requests sr
+          JOIN users u ON u.id = sr."distributorId"
+          LEFT JOIN batch_shipments bs ON bs."shipmentRequestId" = sr.id
+          WHERE sr."distributorId" = ${session.user?.id}
+          ORDER BY sr."requestedAt" DESC
+        `
 
   const requestIds = requests.map((r) => r.id)
   if (requestIds.length === 0) return NextResponse.json({ requests: [] })

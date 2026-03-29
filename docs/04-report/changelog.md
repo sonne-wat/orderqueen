@@ -6,6 +6,48 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2026-03-29] - Distributor Date Filter Feature Complete
+
+### Added
+- **Date Range Filter UI Component**: Reusable `DateRangeFilter` component with quick-select presets
+  - Last 30 days, Last 3 months, All time presets
+  - Custom from/to date inputs (`input[type=date]`)
+  - Clean button-based UI with active state highlighting
+  - Standalone component for reuse across pages
+
+- **Dashboard Date Filtering**: Server-side filtering for distributor dashboard
+  - URL-driven filtering via Next.js searchParams: `?dateFrom=YYYY-MM-DD&dateTo=YYYY-MM-DD`
+  - `DashboardDateFilter` router-aware wrapper component
+  - Prisma `createdAt` range filter on order queries
+  - Default: last 3 months (performance-optimized default)
+  - Support for "all time" mode via `?all=1` param
+
+- **Shipment Requests Date Filtering**: Client-side filtering for shipment requests page
+  - Date state management with 90-day default
+  - Automatic API refetch on date change via useEffect
+  - URL query parameter pass-through: `dateFrom` and `dateTo` to API
+
+- **API Enhancements**:
+  - GET /api/shipment-requests: New optional query params `dateFrom` and `dateTo`
+  - Conditional SQL filtering on `requestedAt` for both ADMIN and DISTRIBUTOR roles
+  - Date range validation with UTC boundary times (start: 00:00:00Z, end: 23:59:59Z)
+
+### Changed
+- Distributor dashboard: Now includes date filter bar above order lists
+- Shipment requests page: Now includes date filter bar above request list
+
+### Technical Details
+- **Files Created**: 2 (DateRangeFilter.tsx, DashboardDateFilter.tsx)
+- **Files Modified**: 3 (dashboard/page.tsx, shipment-requests/page.tsx, api/shipment-requests/route.ts)
+- **Match Rate**: 95% (36/38 design requirements met)
+- **Code Lines Added**: ~150
+- **Iterations Required**: 0 (no refinement cycle needed)
+- **Status**: PDCA Completed, ready for deployment
+
+**Report**: [distributor-date-filter.report.md](features/distributor-date-filter.report.md)
+
+---
+
 ## [2026-03-28] - Order Constraints Feature Complete
 
 ### Added

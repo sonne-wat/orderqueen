@@ -89,7 +89,7 @@ export default async function AdminAnalyticsPage({
   ])
 
   // Summary stats
-  const totalRevenue = periodOrders.reduce((s, o) => s + orderTotal(o.items), 0)
+  const totalRevenue = periodOrders.reduce((s: number, o) => s + orderTotal(o.items), 0)
   const shippedOrders = periodOrders.filter((o) => o.status === 'SHIPPED')
   const leadTimes = shippedOrders.map((o) => leadTimeDays(o.createdAt, o.updatedAt)).filter((d) => d >= 0)
   const avgLeadTime = leadTimes.length > 0 ? leadTimes.reduce((s, d) => s + d, 0) / leadTimes.length : null
@@ -109,10 +109,10 @@ export default async function AdminAnalyticsPage({
       const dOrders = periodOrders.filter((o) => o.distributorId === d.id)
       const dShipped = dOrders.filter((o) => o.status === 'SHIPPED')
       const dLeadTimes = dShipped.map((o) => leadTimeDays(o.createdAt, o.updatedAt)).filter((x) => x >= 0)
-      const avgLT = dLeadTimes.length > 0 ? dLeadTimes.reduce((s, x) => s + x, 0) / dLeadTimes.length : null
+      const avgLT = dLeadTimes.length > 0 ? dLeadTimes.reduce((s: number, x) => s + x, 0) / dLeadTimes.length : null
       const minLT = dLeadTimes.length > 0 ? Math.min(...dLeadTimes) : null
       const maxLT = dLeadTimes.length > 0 ? Math.max(...dLeadTimes) : null
-      const revenue = dOrders.reduce((s, o) => s + orderTotal(o.items), 0)
+      const revenue = dOrders.reduce((s: number, o) => s + orderTotal(o.items), 0)
       const activeOrders = d.orders.filter((o) => !['SHIPPED', 'DRAFT'].includes(o.status)).length
       return {
         id: d.id, name: d.name, company: d.company,
@@ -158,7 +158,7 @@ export default async function AdminAnalyticsPage({
   const trendData = buildTrend(period, periodOrders, now)
   const maxTrendAmount = Math.max(...trendData.map((t) => t.amount), 1)
 
-  const totalModeOrders = Object.values(modeMap).reduce((s, v) => s + v, 0)
+  const totalModeOrders = Object.values(modeMap).reduce((s: number, v) => s + v, 0)
 
   const STATUS_COLORS: Record<string, string> = {
     SUBMITTED: 'bg-blue-400',

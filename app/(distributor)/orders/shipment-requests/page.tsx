@@ -2,6 +2,13 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { DateRangeFilter } from '@/components/ui/DateRangeFilter'
+
+function daysAgo(n: number) {
+  const d = new Date()
+  d.setDate(d.getDate() - n)
+  return d.toISOString().slice(0, 10)
+}
 
 type RequestSummary = {
   id: string
@@ -46,17 +53,25 @@ export default function ShipmentRequestsPage() {
   const [requests, setRequests] = useState<RequestSummary[]>([])
   const [activeBatches, setActiveBatches] = useState<ActiveBatch[]>([])
   const [loading, setLoading] = useState(true)
+  const [dateFrom, setDateFrom] = useState(() => daysAgo(90))
+  const [dateTo, setDateTo] = useState('')
 
   useEffect(() => {
+    setLoading(true)
+    const params = new URLSearchParams()
+    if (dateFrom) params.set('dateFrom', dateFrom)
+    if (dateTo) params.set('dateTo', dateTo)
+    const qs = params.toString()
+
     Promise.all([
-      fetch('/api/shipment-requests').then((r) => r.json()),
+      fetch(`/api/shipment-requests${qs ? `?${qs}` : ''}`).then((r) => r.json()),
       fetch('/api/batch-shipments').then((r) => r.json()),
     ]).then(([reqData, batchData]) => {
       setRequests(reqData.requests ?? [])
       setActiveBatches(batchData.batches ?? [])
       setLoading(false)
     })
-  }, [])
+  }, [dateFrom, dateTo])
 
   return (
     <main className="max-w-3xl mx-auto px-6 py-8">
@@ -71,6 +86,14 @@ export default function ShipmentRequestsPage() {
         >
           + New Batch Request
         </Link>
+      </div>
+
+      <div className="mb-5">
+        <DateRangeFilter
+          dateFrom={dateFrom}
+          dateTo={dateTo}
+          onChange={(from, to) => { setDateFrom(from); setDateTo(to) }}
+        />
       </div>
 
       {loading ? (
